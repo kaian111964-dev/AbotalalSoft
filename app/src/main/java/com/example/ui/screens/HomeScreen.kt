@@ -120,49 +120,172 @@ fun HomeScreen(
         drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = SurfaceWhite,
-                modifier = Modifier.width(300.dp)
+                modifier = Modifier.width(310.dp)
             ) {
-                // Drawer Header
+                // Drawer Header matching Screenshot 5
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Brush.verticalGradient(listOf(Color(0xFF066EFD), Color(0xFF0048C4)))
+                            Brush.verticalGradient(listOf(Color(0xFF0256D0), Color(0xFF003E9E)))
                         )
-                        .padding(20.dp)
+                        .padding(14.dp)
                 ) {
-                    Column {
-                        Image(
-                            painter = painterResource(id = com.example.R.drawable.app_logo_abotalal),
-                            contentDescription = "ابوطلال سوفت",
-                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(68.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = shopName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Store badge card
+                        Surface(
+                            color = Color.White.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.padding(2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Storefront,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "أبو طلال",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                                Text(
+                                    text = "محل الخردة",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+
+                        // App title & recycle circle
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "أبو طلال سوفت",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "Abu Talal Soft",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "لإدارة محاسبي متكامل لحسابات ومبيعات ومشتريات الخردة",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.8f),
+                                    fontSize = 8.sp,
+                                    maxLines = 1
+                                )
+                            }
+
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Recycling,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Drawer Navigation Items
+                // Drawer Scrollable Navigation Sections matching Screenshot 5
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp)
+                        .padding(horizontal = 10.dp)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 1. العمليات الرئيسية
+                    DrawerSectionHeader(title = "العمليات الرئيسية", icon = Icons.Default.TrendingUp)
+
                     DrawerItem(
-                        icon = Icons.Default.AttachMoney,
-                        title = "أسعار مشتريات الخردة اليوم",
+                        icon = Icons.Default.ShoppingCart,
+                        title = "المشتريات",
+                        tint = Color(0xFF066EFD)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.PURCHASES)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.ShoppingBag,
+                        title = "المبيعات",
+                        tint = Color(0xFFEF4444)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.SALES)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.AccountBalanceWallet,
+                        title = "المصروفات",
+                        tint = Color(0xFF0284C7)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.EXPENSES)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.Groups,
+                        title = "العملاء",
+                        tint = Color(0xFFDC2626)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.CUSTOMERS)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.BarChart,
+                        title = "تقارير المبيعات",
+                        tint = Color(0xFF066EFD)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.REPORTS)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.Assessment,
+                        title = "تقارير المشتريات",
+                        tint = Color(0xFFDC2626)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.REPORTS)
+                    }
+
+                    // 2. الإعدادات
+                    DrawerSectionHeader(title = "الإعدادات", icon = Icons.Default.Settings)
+
+                    DrawerItem(
+                        icon = Icons.Default.LocalOffer,
+                        title = "أسعار المشتريات",
                         tint = Color(0xFF066EFD)
                     ) {
                         coroutineScope.launch { drawerState.close() }
@@ -170,83 +293,36 @@ fun HomeScreen(
                     }
 
                     DrawerItem(
-                        icon = Icons.Default.TrendingUp,
-                        title = "أسعار مبيعات الخردة اليوم",
-                        tint = Color(0xFF22C55E)
+                        icon = Icons.Default.Sell,
+                        title = "أسعار المبيعات",
+                        tint = Color(0xFFEF4444)
                     ) {
                         coroutineScope.launch { drawerState.close() }
                         viewModel.navigateTo(AppScreen.PRICING_SALE)
                     }
 
                     DrawerItem(
-                        icon = Icons.Default.Inventory2,
-                        title = "المخزون وأصناف الخردة",
-                        tint = Color(0xFFF59E0B)
-                    ) {
-                        coroutineScope.launch { drawerState.close() }
-                        showScrapInventoryDialog = true
-                    }
-
-                    DrawerItem(
-                        icon = Icons.Default.ShoppingCart,
-                        title = "المبيعات والفواتير",
-                        tint = Color(0xFF066EFD)
-                    ) {
-                        coroutineScope.launch { drawerState.close() }
-                        viewModel.navigateTo(AppScreen.SALES)
-                    }
-
-                    DrawerItem(
-                        icon = Icons.Default.ShoppingBag,
-                        title = "المشتريات والتوريد",
-                        tint = Color(0xFF22C55E)
-                    ) {
-                        coroutineScope.launch { drawerState.close() }
-                        viewModel.navigateTo(AppScreen.PURCHASES)
-                    }
-
-                    DrawerItem(
-                        icon = Icons.Default.Groups,
-                        title = "العملاء والموردين",
-                        tint = Color(0xFF06B6D4)
-                    ) {
-                        coroutineScope.launch { drawerState.close() }
-                        viewModel.navigateTo(AppScreen.CUSTOMERS)
-                    }
-
-                    DrawerItem(
-                        icon = Icons.Default.AccountBalanceWallet,
-                        title = "المصروفات اليومية",
-                        tint = Color(0xFFEF4444)
-                    ) {
-                        coroutineScope.launch { drawerState.close() }
-                        viewModel.navigateTo(AppScreen.EXPENSES)
-                    }
-
-                    DrawerItem(
-                        icon = Icons.Default.BarChart,
-                        title = "التقارير الشاملة والأرباح",
-                        tint = Color(0xFF1E40AF)
-                    ) {
-                        coroutineScope.launch { drawerState.close() }
-                        viewModel.navigateTo(AppScreen.REPORTS)
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BorderLight)
-
-                    DrawerItem(
-                        icon = Icons.Default.Storefront,
-                        title = "تعديل بيانات المحل",
-                        tint = Color(0xFF64748B)
+                        icon = Icons.Default.Storage,
+                        title = "البيانات الأساسية",
+                        tint = Color(0xFF0284C7)
                     ) {
                         coroutineScope.launch { drawerState.close() }
                         showEditShopDialog = true
                     }
 
                     DrawerItem(
-                        icon = Icons.Default.CloudDownload,
-                        title = "النسخ الاحتياطي والمشاركة",
-                        tint = Color(0xFF64748B)
+                        icon = Icons.Default.Settings,
+                        title = "إعدادات التطبيق",
+                        tint = Color(0xFFDC2626)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.SETTINGS)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.CloudUpload,
+                        title = "النسخ الاحتياطي والاستعادة",
+                        tint = Color(0xFF066EFD)
                     ) {
                         coroutineScope.launch {
                             drawerState.close()
@@ -255,16 +331,143 @@ fun HomeScreen(
                         }
                     }
 
+                    // 3. معلومات
+                    DrawerSectionHeader(title = "معلومات", icon = Icons.Default.Info)
+
                     DrawerItem(
-                        icon = Icons.Default.Code,
-                        title = "حقوق المطور والبرمجة",
-                        tint = Color(0xFF64748B)
+                        icon = Icons.Default.Info,
+                        title = "حول التطبيق",
+                        tint = Color(0xFF066EFD)
                     ) {
                         coroutineScope.launch { drawerState.close() }
                         showDevDialog = true
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    DrawerItem(
+                        icon = Icons.Default.HeadsetMic,
+                        title = "مساعدة ودعم",
+                        tint = Color(0xFF0284C7)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        openWhatsApp(context, "778215553", "مرحباً، أحتاج مساعدة في تطبيق ابوطلال سوفت")
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.Phone,
+                        title = "اتصل بنا",
+                        tint = Color(0xFF066EFD)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        openPhoneCall(context, "778215553")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 4. كرت المطور المتطابق مع Screenshot 5
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFE2ECFC)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "حقوق المبرمج والمطور",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF475569),
+                                fontSize = 10.sp
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Code,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0256D0),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "عبدالحميد داوود",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0256D0)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                // Green WhatsApp Button
+                                Button(
+                                    onClick = {
+                                        openWhatsApp(context, "778215553", "السلام عليكم مبرمج عبدالحميد داوود")
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                    modifier = Modifier.weight(1f).height(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Chat,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("واتساب", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                // Blue Call Button
+                                Button(
+                                    onClick = {
+                                        openPhoneCall(context, "778215553")
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0256D0)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                    modifier = Modifier.weight(2.2f).height(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Phone,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("778215553 - 700897775", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Version footer
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFDCEBFE)
+                    ) {
+                        Text(
+                            text = "الإصدار : 1.0.0",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF0256D0),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
             }
         }
@@ -1660,7 +1863,44 @@ fun FooterDeveloperBranding(
     }
 }
 
-// ---------------------- 9. DRAWER ITEM ----------------------
+// ---------------------- 9. DRAWER ITEM & SECTION ----------------------
+@Composable
+fun DrawerSectionHeader(
+    title: String,
+    icon: ImageVector
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFFE2E8F0).copy(alpha = 0.65f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A),
+                fontSize = 12.sp
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFF0256D0),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
 @Composable
 fun DrawerItem(
     icon: ImageVector,
@@ -1672,28 +1912,45 @@ fun DrawerItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         color = Color.Transparent
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Left arrow
             Icon(
-                imageVector = icon,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(22.dp)
+                tint = Color(0xFF0256D0),
+                modifier = Modifier.size(16.dp)
             )
-            Spacer(modifier = Modifier.width(14.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
-            )
+
+            // Right title + icon
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1E293B),
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

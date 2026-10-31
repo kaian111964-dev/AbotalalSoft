@@ -34,89 +34,67 @@ fun SplashScreen(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier
 ) {
-    val shopProfile by viewModel.shopProfile.collectAsState()
+    var progress by remember { mutableFloatStateOf(0.1f) }
 
-    var startAnimation by remember { mutableStateOf(false) }
-    val scaleAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.6f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "scale"
-    )
-    val alphaAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(1000),
-        label = "alpha"
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 1200, easing = LinearEasing),
+        label = "progress"
     )
 
     LaunchedEffect(Unit) {
-        startAnimation = true
+        progress = 1.0f
         delay(1400)
-        // Direct transition to main dashboard as requested by user
         viewModel.navigateTo(AppScreen.HOME)
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(BlueDark, BluePrimary, BlueSecondary)
-                )
-            ),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.splash_bg_user),
+            contentDescription = "شاشة الترحيب ابوطلال سوفت",
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Overlay animated progress bar at the designated slot of the artwork
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .padding(24.dp)
-                .scale(scaleAnim.value)
-                .alpha(alphaAnim.value)
+                .fillMaxSize()
+                .padding(horizontal = 48.dp, vertical = 60.dp),
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.app_logo_abotalal),
-                contentDescription = "شعار ابوطلال سوفت الرسمي",
-                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(130.dp)
+            CircularProgressIndicator(
+                color = Color(0xFF066EFD),
+                strokeWidth = 3.5.dp,
+                modifier = Modifier.size(38.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "جاري التحميل ...",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Surface(
-                color = RedAccent,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = "نظام حسابات ومبيعات ومشتريات الخردة",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            CircularProgressIndicator(
-                color = Color.White,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(32.dp)
+            LinearProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                color = Color(0xFF066EFD),
+                trackColor = Color(0xFFCBD5E1),
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
-
-            Text(
-                text = "المطور: عبدالحميد داوؤد",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.85f)
-            )
-            Text(
-                text = "778215553 - 700897775",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f)
-            )
+            Spacer(modifier = Modifier.height(30.dp))
         }
     }
 }

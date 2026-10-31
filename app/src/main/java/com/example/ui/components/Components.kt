@@ -3,6 +3,7 @@ package com.example.ui.components
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.example.data.local.entity.InvoiceEntity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -50,6 +51,20 @@ fun getScrapColor(scrapName: String): Color {
         scrapName.contains("حديد") -> IronColor
         scrapName.contains("بلاستيك") -> PlasticColor
         else -> BlueSecondary
+    }
+}
+
+fun getScrapDrawableRes(scrapName: String): Int {
+    return when {
+        scrapName.contains("أحمر") -> com.example.R.drawable.ic_scrap_copper_red
+        scrapName.contains("أصفر") -> com.example.R.drawable.ic_scrap_copper_yellow
+        scrapName.contains("خفيف") -> com.example.R.drawable.ic_scrap_metal_light
+        scrapName.contains("ثقيل") -> com.example.R.drawable.ic_scrap_metal_heavy
+        scrapName.contains("ألمنيوم") || scrapName.contains("المنيوم") -> com.example.R.drawable.ic_scrap_aluminum
+        scrapName.contains("بطاريات") || scrapName.contains("بطارية") -> com.example.R.drawable.ic_scrap_battery
+        scrapName.contains("حديد") -> com.example.R.drawable.ic_scrap_iron
+        scrapName.contains("بلاستيك") -> com.example.R.drawable.ic_scrap_plastic
+        else -> com.example.R.drawable.ic_scrap_copper_red
     }
 }
 
@@ -327,3 +342,117 @@ fun PhoneContactRow(
         }
     }
 }
+
+@Composable
+fun InvoiceHistoryCard(
+    invoice: InvoiceEntity,
+    currency: String,
+    onView: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onView),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Delete & View actions
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "حذف", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onView, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Visibility, contentDescription = "عرض", tint = Color(0xFF0256D0), modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                // Type & Number badge
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = invoice.invoiceNumber,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (invoice.invoiceType == "SALE") Color(0xFFDBEAFE) else Color(0xFFDCFCE7)
+                    ) {
+                        Text(
+                            text = if (invoice.invoiceType == "SALE") "فاتورة بيع" else "فاتورة شراء",
+                            color = if (invoice.invoiceType == "SALE") Color(0xFF0256D0) else Color(0xFF16A34A),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${formatCurrency(invoice.totalAmount, "")} $currency",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF0256D0)
+                )
+
+                Text(
+                    text = invoice.customerName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (invoice.remainingAmount > 0) {
+                    Text(
+                        text = "متبقي: ${formatCurrency(invoice.remainingAmount, "")} $currency",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFEF4444)
+                    )
+                } else {
+                    Text(
+                        text = "خالص نقدياً",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF16A34A)
+                    )
+                }
+
+                Text(
+                    text = invoice.dateString,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF64748B)
+                )
+            }
+        }
+    }
+}
+
