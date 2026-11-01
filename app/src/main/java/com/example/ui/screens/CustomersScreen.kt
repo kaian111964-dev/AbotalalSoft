@@ -45,6 +45,7 @@ fun CustomersScreen(
     val allSettlements by viewModel.allSettlements.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
+    var customerCategoryTab by remember { mutableIntStateOf(0) } // 0: موردين (مشتريات), 1: مشترين/مصانع (مبيعات), 2: الكل
     var filterType by remember { mutableIntStateOf(0) } // 0: All, 1: Debt Owed to them (لهم), 2: Debt Owed by them (عليهم)
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -69,6 +70,11 @@ fun CustomersScreen(
     }
 
     val filteredList = customersWithBalances.filter { item ->
+        val matchesCategory = when (customerCategoryTab) {
+            0 -> item.first.customerType != "BUYER"
+            1 -> item.first.customerType != "SUPPLIER"
+            else -> true
+        }
         val matchesSearch = item.first.name.contains(searchQuery, ignoreCase = true) ||
                 item.first.phone.contains(searchQuery)
         val matchesFilter = when (filterType) {
@@ -76,7 +82,7 @@ fun CustomersScreen(
             2 -> item.third > 0 // عليهم ديون
             else -> true
         }
-        matchesSearch && matchesFilter
+        matchesCategory && matchesSearch && matchesFilter
     }
 
     val totalOwedToSuppliers = customersWithBalances.sumOf { it.second }
@@ -167,11 +173,60 @@ fun CustomersScreen(
                 }
             }
 
+            // Primary Category Tabs: الموردين (المشتريات) vs المصانع والتجار (المبيعات)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                color = SurfaceWhite,
+                shadowElevation = 1.dp
+            ) {
+                TabRow(
+                    selectedTabIndex = customerCategoryTab,
+                    containerColor = Color.Transparent,
+                    contentColor = BluePrimary,
+                    divider = {}
+                ) {
+                    Tab(
+                        selected = customerCategoryTab == 0,
+                        onClick = { customerCategoryTab = 0 },
+                        text = {
+                            Text(
+                                "عملاء المشتريات (الموردين)",
+                                fontSize = 11.sp,
+                                fontWeight = if (customerCategoryTab == 0) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = customerCategoryTab == 1,
+                        onClick = { customerCategoryTab = 1 },
+                        text = {
+                            Text(
+                                "عملاء المبيعات (المصانع)",
+                                fontSize = 11.sp,
+                                fontWeight = if (customerCategoryTab == 1) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = customerCategoryTab == 2,
+                        onClick = { customerCategoryTab = 2 },
+                        text = {
+                            Text(
+                                "الكل (${allCustomers.size})",
+                                fontSize = 11.sp,
+                                fontWeight = if (customerCategoryTab == 2) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                }
+            }
+
             // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("بحث عن عميل بالاسم أو الهاتف...") },
+                placeholder = { Text("بحث عن عميل بالاسم أو الهاتف...", fontSize = 12.sp) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -187,18 +242,18 @@ fun CustomersScreen(
                 FilterChip(
                     selected = filterType == 0,
                     onClick = { filterType = 0 },
-                    label = { Text("الكل (${allCustomers.size})") }
+                    label = { Text("الكل") }
                 )
                 FilterChip(
                     selected = filterType == 1,
                     onClick = { filterType = 1 },
-                    label = { Text("متبقي لهم") },
+                    label = { Text("متبقي لهم (في ذمتنا)") },
                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RedLight, selectedLabelColor = RedAccent)
                 )
                 FilterChip(
                     selected = filterType == 2,
                     onClick = { filterType = 2 },
-                    label = { Text("متبقي عليهم") },
+                    label = { Text("متبقي عليهم (لنا)") },
                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = GreenLight, selectedLabelColor = GreenSuccess)
                 )
             }
@@ -244,13 +299,15 @@ fun CustomersScreen(
 
     if (showAddDialog) {
         AddCustomerDialog(
+            initialType = if (customerCategoryTab == 1) "BUYER" else "SUPPLIER",
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, phone, address, notes ->
+            onConfirm = { name, phone, address, type, notes ->
                 viewModel.addOrUpdateCustomer(
                     CustomerEntity(
                         name = name,
                         phone = phone,
                         address = address,
+                        customerType = type,
                         notes = notes
                     )
                 )
@@ -288,21 +345,52 @@ fun CustomerItemCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = CircleShape,
-                        color = BlueLight,
+                        color = if (customer.customerType == "BUYER") Color(0xFFDCFCE7) else BlueLight,
                         modifier = Modifier.size(42.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = BluePrimary)
+                            Icon(
+                                if (customer.customerType == "BUYER") Icons.Default.Factory else Icons.Default.Person,
+                                contentDescription = null,
+                                tint = if (customer.customerType == "BUYER") Color(0xFF16A34A) else BluePrimary
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = customer.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = customer.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = when (customer.customerType) {
+                                    "BUYER" -> Color(0xFFDCFCE7)
+                                    "ALL" -> Color(0xFFFEF3C7)
+                                    else -> Color(0xFFDBEAFE)
+                                }
+                            ) {
+                                Text(
+                                    text = when (customer.customerType) {
+                                        "BUYER" -> "مشتري / مصنع"
+                                        "ALL" -> "مورد ومشتري"
+                                        else -> "مورد خردة"
+                                    },
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when (customer.customerType) {
+                                        "BUYER" -> Color(0xFF166534)
+                                        "ALL" -> Color(0xFFB45309)
+                                        else -> Color(0xFF1E3A8A)
+                                    },
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
                         if (customer.phone.isNotBlank()) {
                             Text(
                                 text = customer.phone,
@@ -395,19 +483,47 @@ fun CustomerItemCard(
 
 @Composable
 fun AddCustomerDialog(
+    initialType: String = "SUPPLIER",
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String) -> Unit
+    onConfirm: (String, String, String, String, String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+    var customerType by remember { mutableStateOf(initialType) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("إضافة عميل / مورد جديد", fontWeight = FontWeight.Bold, color = BluePrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Customer Type Selection
+                Text("نوع العميل:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilterChip(
+                        selected = customerType == "SUPPLIER",
+                        onClick = { customerType = "SUPPLIER" },
+                        label = { Text("مورد (مشتريات)", fontSize = 10.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = customerType == "BUYER",
+                        onClick = { customerType = "BUYER" },
+                        label = { Text("مشتري (مبيعات)", fontSize = 10.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = customerType == "ALL",
+                        onClick = { customerType = "ALL" },
+                        label = { Text("كلاهما", fontSize = 10.sp) },
+                        modifier = Modifier.weight(0.7f)
+                    )
+                }
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -442,7 +558,7 @@ fun AddCustomerDialog(
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onConfirm(name, phone, address, notes)
+                        onConfirm(name, phone, address, customerType, notes)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)

@@ -35,6 +35,7 @@ enum class AppScreen {
     CUSTOMERS,
     CUSTOMER_DETAIL,
     EXPENSES,
+    CASHBOX,
     PRICING_PURCHASE,
     PRICING_SALE,
     REPORTS,
@@ -79,17 +80,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val screenStack = mutableListOf<AppScreen>()
 
-    fun navigateTo(screen: AppScreen) {
+    fun navigateTo(screen: AppScreen, clearStack: Boolean = false) {
+        if (clearStack) {
+            screenStack.clear()
+            _currentScreen.value = screen
+            return
+        }
         if (_currentScreen.value != screen) {
-            screenStack.add(_currentScreen.value)
+            if (_currentScreen.value != AppScreen.SPLASH) {
+                screenStack.add(_currentScreen.value)
+            }
             _currentScreen.value = screen
         }
     }
 
     fun navigateBack(): Boolean {
-        if (screenStack.isNotEmpty()) {
+        while (screenStack.isNotEmpty()) {
             val prev = screenStack.removeAt(screenStack.size - 1)
-            _currentScreen.value = prev
+            if (prev != AppScreen.SPLASH) {
+                _currentScreen.value = prev
+                return true
+            }
+        }
+        if (_currentScreen.value != AppScreen.HOME) {
+            _currentScreen.value = AppScreen.HOME
             return true
         }
         return false
@@ -391,5 +405,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val invoice = repository.getInvoiceById(invoiceId)
         val items = repository.getItemsForInvoiceSync(invoiceId)
         return Pair(invoice, items)
+    }
+
+    // Cashbox Direct Operations (إيداع وسحب نقدي)
+    fun addCashTransaction(type: String, amount: Double, reason: String, personName: String) {
+        if (amount <= 0) {
+            showMessage("يرجى إدخال مبلغ صحيح")
+            return
+        }
+        val isDeposit = type == "DEPOSIT"
+        val settlementType = if (isDeposit) "CASH_DEPOSIT" else "CASH_WITHDRAWAL"
+        val label = if (isDeposit) "إيداع في الصندوق: $reason" else "سحب من الصندوق: $reason"
+        val customerTitle = personName.ifBlank { if (isDeposit) "إيداع نقدي مباشر" else "سحب نقدي مباشر" }
+
+        viewModelScope.launch {
+            repository.addSettlement(
+                customerId = 0,
+                customerName = customerTitle,
+                type = settlementType,
+                amount = amount,
+                notes = label
+            )
+            showMessage(if (isDeposit) "تم إيداع $amount في الصندوق بنجاح" else "تم سحب $amount من الصندوق بنجاح")
+        }
+    }
+
+    // Custom Scrap Categories
+    fun addCustomCategory(name: String, purchasePrice: Double = 0.0, salePrice: Double = 0.0) {
+        if (name.isBlank()) {
+            showMessage("يرجى كتابة اسم الصنف")
+            return
+        }
+        viewModelScope.launch {
+            repository.addCategory(
+                ScrapCategoryEntity(
+                    name = name.trim(),
+                    defaultPurchasePrice = purchasePrice,
+                    defaultSalePrice = salePrice,
+                    unit = "كجم"
+                )
+            )
+            showMessage("تمت إضافة صنف $name بنجاح")
+        }
+    }
+
+    fun deleteCustomCategory(category: ScrapCategoryEntity) {
+        viewModelScope.launch {
+            repository.deleteCategory(category)
+            showMessage("تم حذف الصنف")
+        }
     }
 }

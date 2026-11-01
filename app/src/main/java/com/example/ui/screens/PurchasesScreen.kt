@@ -60,6 +60,7 @@ fun PurchasesScreen(
     val activePurchasePrice by viewModel.activePurchasePrice.collectAsState()
     val purchaseInvoices by viewModel.purchaseInvoices.collectAsState()
     val allCustomers by viewModel.allCustomers.collectAsState()
+    val allCategories by viewModel.allCategories.collectAsState()
 
     val currency = shopProfile?.currencySymbol ?: "ريال يمني"
 
@@ -71,12 +72,23 @@ fun PurchasesScreen(
     var paidAmountText by remember { mutableStateOf("") }
 
     var isCustomerDropdownExpanded by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
 
-    // 8 Predefined Scrap Items matching Screenshot 2
-    val scrapList = listOf(
+    // Filter purchase customers (suppliers and individuals, not buyers/factories)
+    val purchaseCustomers = remember(allCustomers) {
+        allCustomers.filter { it.customerType != "BUYER" }
+    }
+
+    // 8 Predefined Scrap Items matching Screenshot 2 + custom user categories
+    val defaultScrapList = listOf(
         "المعدن الثقيل", "المعدن الخفيف", "النحاس الأصفر", "النحاس الأحمر",
         "البلاستيك", "الحديد", "البطاريات", "الألمنيوم"
     )
+    val combinedScrapList = remember(defaultScrapList, allCategories) {
+        val customNames = allCategories.map { it.name }.filterNot { defaultScrapList.contains(it) }
+        defaultScrapList + customNames
+    }
+
     var selectedScrapName by remember { mutableStateOf("النحاس الأحمر") }
     var isScrapDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -92,7 +104,7 @@ fun PurchasesScreen(
 
     // Helper to get active purchase price
     fun getActivePurchasePriceFor(scrap: String): Double {
-        return when (scrap) {
+        val predefined = when (scrap) {
             "النحاس الأحمر" -> activePurchasePrice?.copperRedPrice ?: 0.0
             "النحاس الأصفر" -> activePurchasePrice?.copperYellowPrice ?: 0.0
             "المعدن الخفيف" -> activePurchasePrice?.metalLightPrice ?: 0.0
@@ -103,9 +115,12 @@ fun PurchasesScreen(
             "البلاستيك" -> activePurchasePrice?.plasticPrice ?: 0.0
             else -> 0.0
         }
+        if (predefined > 0.0) return predefined
+        val custom = allCategories.find { it.name == scrap }
+        return custom?.defaultPurchasePrice ?: 0.0
     }
 
-    LaunchedEffect(selectedScrapName, activePurchasePrice) {
+    LaunchedEffect(selectedScrapName, activePurchasePrice, allCategories) {
         val p = getActivePurchasePriceFor(selectedScrapName)
         if (p > 0.0) {
             unitPriceText = if (p % 1.0 == 0.0) p.toLong().toString() else p.toString()
@@ -361,8 +376,9 @@ fun PurchasesScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
-                                value = customerName.ifBlank { "اختر العميل" },
+                                value = customerName,
                                 onValueChange = { customerName = it },
+                                placeholder = { Text("اختر أو اكتب اسم العميل", fontSize = 11.sp) },
                                 modifier = Modifier
                                     .menuAnchor()
                                     .fillMaxWidth()
@@ -380,21 +396,113 @@ fun PurchasesScreen(
                                 onDismissRequest = { isCustomerDropdownExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("عميل مشتريات نقدي", fontWeight = FontWeight.Bold) },
+                                    text = { Text("عميل مشتريات نقدي (افتراضي)", fontWeight = FontWeight.Bold, color = Color(0xFF0256D0)) },
                                     onClick = {
                                         customerName = "عميل مشتريات نقدي"
                                         customerPhone = ""
                                         isCustomerDropdownExpanded = false
                                     }
                                 )
-                                allCustomers.forEach { cust ->
+                                if (purchaseCustomers.isEmpty()) {
                                     DropdownMenuItem(
-                                        text = { Text(cust.name) },
-                                        onClick = {
-                                            customerName = cust.name
-                                            customerPhone = cust.phone
-                                            isCustomerDropdownExpanded = false
-                                        }
+                                        text = { Text("لا يوجد موردين مسجلين (اكتب الاسم مباشرة)", fontSize = 11.sp, color = Color.Gray) },
+                                        onClick = { isCustomerDropdownExpanded = false }
+                                    )
+                                } else {
+                                    purchaseCustomers.forEach { cust ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(cust.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                    if (cust.phone.isNotBlank()) {
+                                                        Text(cust.phone, fontSize = 10.sp, color = Color(0xFF64748B))
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                customerName = cust.name
+                                                customerPhone = cust.phone
+                                                isCustomerDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------------- 1.B DEBT & REMAINING INPUTS (عند اختيار آجل) ----------------
+            if (!isFullCash) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFFEF2F2),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "تفاصيل الدفع الآجل (ذمة للمورد)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFFDC2626)
+                            )
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // المبلغ المدفوع نقدياً الآن
+                            OutlinedTextField(
+                                value = paidAmountText,
+                                onValueChange = { paidAmountText = it },
+                                label = { Text("المدفوع نقدياً الآن", fontSize = 10.sp) },
+                                placeholder = { Text("0.0", fontSize = 10.sp) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(54.dp)
+                                    .testTag("purchase_paid_amount_input"),
+                                shape = RoundedCornerShape(8.dp),
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                            )
+
+                            // المتبقي له في ذمتنا (Card)
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(54.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFFEE2E2),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5))
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("المتبقي له في ذمتنا", fontSize = 10.sp, color = Color(0xFF991B1B), fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = "${formatCurrency(remainingToClient, "")} $currency",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFFDC2626),
+                                        maxLines = 1
                                     )
                                 }
                             }
@@ -416,14 +524,32 @@ fun PurchasesScreen(
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "أصناف الخردة",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0256D0),
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.End
-                    )
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Button to add custom category
+                        Button(
+                            onClick = { showAddCategoryDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0256D0).copy(alpha = 0.12f)),
+                            elevation = null,
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0256D0), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("إضافة صنف جديد", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0256D0))
+                        }
+
+                        Text(
+                            text = "أصناف الخردة",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0256D0)
+                        )
+                    }
 
                     // Row 1: النحاس الأحمر, النحاس الأصفر, المعدن الخفيف, المعدن الثقيل
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -493,6 +619,35 @@ fun PurchasesScreen(
                             isSelected = selectedScrapName == "البلاستيك",
                             modifier = Modifier.weight(1f)
                         ) { selectedScrapName = "البلاستيك" }
+                    }
+
+                    // Row 3: Custom scrap items added by user (if any)
+                    val customItems = allCategories.filterNot { defaultScrapList.contains(it.name) }
+                    if (customItems.isNotEmpty()) {
+                        Text(
+                            text = "أصناف إضافية مخصصة:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF64748B),
+                            fontSize = 10.sp,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            customItems.take(4).forEach { cat ->
+                                PurchaseScrapBadge(
+                                    name = cat.name,
+                                    bg = Color(0xFFF8FAFC),
+                                    border = Color(0xFF94A3B8),
+                                    isSelected = selectedScrapName == cat.name,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    selectedScrapName = cat.name
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -588,7 +743,7 @@ fun PurchasesScreen(
                                 expanded = isScrapDropdownExpanded,
                                 onDismissRequest = { isScrapDropdownExpanded = false }
                             ) {
-                                scrapList.forEach { scrap ->
+                                combinedScrapList.forEach { scrap ->
                                     DropdownMenuItem(
                                         text = { Text(scrap, fontSize = 12.sp) },
                                         onClick = {
@@ -1021,7 +1176,7 @@ fun PurchasesScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(90.dp))
         }
     }
 
@@ -1034,6 +1189,21 @@ fun PurchasesScreen(
             onDismiss = {
                 showPrintDialog = false
                 viewingInvoice = null
+            }
+        )
+    }
+
+    // Add Custom Scrap Category Dialog
+    if (showAddCategoryDialog) {
+        AddCustomCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, _, buyPrice, sellPrice ->
+                viewModel.addCustomCategory(name, buyPrice, sellPrice)
+                selectedScrapName = name
+                if (buyPrice > 0.0) {
+                    unitPriceText = if (buyPrice % 1.0 == 0.0) buyPrice.toLong().toString() else buyPrice.toString()
+                }
+                showAddCategoryDialog = false
             }
         )
     }

@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -51,25 +51,35 @@ fun AbuTalalSoftApp(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { innerPadding ->
-        val screenModifier = Modifier.padding(innerPadding)
+    androidx.activity.compose.BackHandler(enabled = currentScreen != AppScreen.HOME && currentScreen != AppScreen.SPLASH) {
+        viewModel.navigateBack()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         when (currentScreen) {
-            AppScreen.SPLASH -> SplashScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.SETUP -> ShopSetupScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.HOME -> HomeScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.PURCHASES -> PurchasesScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.SALES -> SalesScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.CUSTOMERS -> CustomersScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.CUSTOMER_DETAIL -> CustomerDetailScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.EXPENSES -> ExpensesScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.PRICING_PURCHASE -> PricingSettingsScreen(priceType = "PURCHASE", viewModel = viewModel, modifier = screenModifier)
-            AppScreen.PRICING_SALE -> PricingSettingsScreen(priceType = "SALE", viewModel = viewModel, modifier = screenModifier)
-            AppScreen.REPORTS -> ReportsScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.SETTINGS -> SettingsScreen(viewModel = viewModel, modifier = screenModifier)
-            AppScreen.DEVELOPER_INFO -> DeveloperInfoScreen(viewModel = viewModel, modifier = screenModifier)
+            AppScreen.SPLASH -> SplashScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.SETUP -> ShopSetupScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.HOME -> HomeScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.PURCHASES -> PurchasesScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.SALES -> SalesScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.CUSTOMERS -> CustomersScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.CUSTOMER_DETAIL -> CustomerDetailScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.EXPENSES -> ExpensesScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.CASHBOX -> CashboxScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.PRICING_PURCHASE -> PricingSettingsScreen(priceType = "PURCHASE", viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.PRICING_SALE -> PricingSettingsScreen(priceType = "SALE", viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.REPORTS -> ReportsScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.SETTINGS -> SettingsScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+            AppScreen.DEVELOPER_INFO -> DeveloperInfoScreen(viewModel = viewModel, modifier = Modifier.fillMaxSize())
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.BottomCenter)
+                .navigationBarsPadding()
+        )
     }
 }

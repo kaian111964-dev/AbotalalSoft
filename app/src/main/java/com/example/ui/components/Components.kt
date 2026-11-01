@@ -456,3 +456,99 @@ fun InvoiceHistoryCard(
     }
 }
 
+@Composable
+fun AddCustomCategoryDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Double, Double) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("كجم") }
+    var buyPriceText by remember { mutableStateOf("") }
+    var sellPriceText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "إضافة صنف خردة جديد",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0256D0),
+                fontSize = 16.sp
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("اسم صنف الخردة *") },
+                    placeholder = { Text("مثال: رصاص، نحاس أبيض، زنك...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = unit,
+                    onValueChange = { unit = it },
+                    label = { Text("وحدة القياس") },
+                    placeholder = { Text("كجم") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = buyPriceText,
+                        onValueChange = { buyPriceText = it },
+                        label = { Text("سعر الشراء") },
+                        placeholder = { Text("0.0") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                    )
+
+                    OutlinedTextField(
+                        value = sellPriceText,
+                        onValueChange = { sellPriceText = it },
+                        label = { Text("سعر البيع") },
+                        placeholder = { Text("0.0") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        val bp = buyPriceText.toDoubleOrNull() ?: 0.0
+                        val sp = sellPriceText.toDoubleOrNull() ?: 0.0
+                        onConfirm(name.trim(), unit.trim().ifBlank { "كجم" }, bp, sp)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0256D0)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("حفظ الصنف", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("إلغاء", color = Color(0xFF64748B))
+            }
+        }
+    )
+}
+

@@ -254,6 +254,15 @@ fun HomeScreen(
                     }
 
                     DrawerItem(
+                        icon = Icons.Default.Savings,
+                        title = "الصندوق والسيولة",
+                        tint = Color(0xFF16A34A)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.CASHBOX)
+                    }
+
+                    DrawerItem(
                         icon = Icons.Default.Groups,
                         title = "العملاء",
                         tint = Color(0xFFDC2626)
@@ -543,7 +552,7 @@ fun HomeScreen(
                         onSalesClick = { viewModel.navigateTo(AppScreen.SALES) },
                         onPurchasesClick = { viewModel.navigateTo(AppScreen.PURCHASES) },
                         onInventoryClick = { showScrapInventoryDialog = true },
-                        onCashboxClick = { viewModel.navigateTo(AppScreen.REPORTS) },
+                        onCashboxClick = { viewModel.navigateTo(AppScreen.CASHBOX) },
                         onCustomersClick = { viewModel.navigateTo(AppScreen.CUSTOMERS) },
                         onReportsClick = { viewModel.navigateTo(AppScreen.REPORTS) },
                         onSettingsClick = { viewModel.navigateTo(AppScreen.SETTINGS) },

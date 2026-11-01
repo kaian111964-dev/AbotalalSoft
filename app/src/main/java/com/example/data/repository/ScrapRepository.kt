@@ -45,6 +45,14 @@ class ScrapRepository(private val dao: ShopDao) {
         dao.saveShopProfile(profile)
     }
 
+    suspend fun addCategory(category: ScrapCategoryEntity): Long {
+        return dao.insertCategory(category)
+    }
+
+    suspend fun deleteCategory(category: ScrapCategoryEntity) {
+        dao.deleteCategory(category)
+    }
+
     suspend fun addDailyPrice(price: DailyPriceEntity, setAsActive: Boolean = true): Long {
         if (setAsActive) {
             dao.deactivateAllPrices(price.priceType)

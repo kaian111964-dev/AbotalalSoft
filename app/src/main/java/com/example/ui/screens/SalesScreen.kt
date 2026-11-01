@@ -74,6 +74,11 @@ fun SalesScreen(
     // Dropdown state for customer selection
     var isCustomerDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Filter sales customers (factories, merchants, buyers)
+    val salesCustomers = remember(allCustomers) {
+        allCustomers.filter { it.customerType != "SUPPLIER" }
+    }
+
     // 8 Predefined Scrap Items matching user specifications
     val scrapList = listOf(
         "الألمنيوم", "البطاريات", "الحديد", "البلاستيك",
@@ -641,6 +646,7 @@ fun SalesScreen(
                             OutlinedTextField(
                                 value = customerName,
                                 onValueChange = { customerName = it },
+                                placeholder = { Text("اختر أو اكتب اسم المشتري / المصنع", fontSize = 11.sp) },
                                 modifier = Modifier
                                     .menuAnchor()
                                     .fillMaxWidth()
@@ -662,21 +668,113 @@ fun SalesScreen(
                                 onDismissRequest = { isCustomerDropdownExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("عميل نقدي", fontWeight = FontWeight.Bold) },
+                                    text = { Text("عميل مبيعات نقدي (افتراضي)", fontWeight = FontWeight.Bold, color = Color(0xFF0256D0)) },
                                     onClick = {
                                         customerName = "عميل نقدي"
                                         customerPhone = ""
                                         isCustomerDropdownExpanded = false
                                     }
                                 )
-                                allCustomers.forEach { cust ->
+                                if (salesCustomers.isEmpty()) {
                                     DropdownMenuItem(
-                                        text = { Text(cust.name) },
-                                        onClick = {
-                                            customerName = cust.name
-                                            customerPhone = cust.phone
-                                            isCustomerDropdownExpanded = false
-                                        }
+                                        text = { Text("لا يوجد مصانع/تجار مسجلين (اكتب الاسم مباشرة)", fontSize = 11.sp, color = Color.Gray) },
+                                        onClick = { isCustomerDropdownExpanded = false }
+                                    )
+                                } else {
+                                    salesCustomers.forEach { cust ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(cust.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                    if (cust.phone.isNotBlank()) {
+                                                        Text(cust.phone, fontSize = 10.sp, color = Color(0xFF64748B))
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                customerName = cust.name
+                                                customerPhone = cust.phone
+                                                isCustomerDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------------- 2.B DEBT & REMAINING INPUTS (عند اختيار بيع آجل) ----------------
+            if (!isFullCash) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFFEF2F2),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "تفاصيل الدفع الآجل (مستحقات للمحل لدى المشتري)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFFDC2626)
+                            )
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // المبلغ المقبوض نقدياً الآن
+                            OutlinedTextField(
+                                value = paidAmountText,
+                                onValueChange = { paidAmountText = it },
+                                label = { Text("المقبوض نقدياً الآن", fontSize = 10.sp) },
+                                placeholder = { Text("0.0", fontSize = 10.sp) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(54.dp)
+                                    .testTag("sale_paid_amount_input"),
+                                shape = RoundedCornerShape(8.dp),
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
+                            )
+
+                            // المتبقي عليه للمحل (Card)
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(54.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFFEE2E2),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5))
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("المتبقي عليه للمحل", fontSize = 10.sp, color = Color(0xFF991B1B), fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = "${formatCurrency(remainingOnBuyer, "")} $currency",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFFDC2626),
+                                        maxLines = 1
                                     )
                                 }
                             }
@@ -1039,7 +1137,7 @@ fun SalesScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(90.dp))
         }
     }
 
