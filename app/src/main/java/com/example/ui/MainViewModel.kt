@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.CustomerEntity
 import com.example.data.local.entity.DailyPriceEntity
+import com.example.data.local.entity.EmployeeEntity
+import com.example.data.local.entity.EmployeeTransactionEntity
 import com.example.data.local.entity.ExpenseEntity
 import com.example.data.local.entity.InvoiceEntity
 import com.example.data.local.entity.InvoiceItemEntity
@@ -31,9 +33,12 @@ enum class AppScreen {
     SETUP,
     HOME,
     PURCHASES,
+    PURCHASE_HISTORY,
+    PURCHASE_REPORTS,
     SALES,
     CUSTOMERS,
     CUSTOMER_DETAIL,
+    EMPLOYEES,
     EXPENSES,
     CASHBOX,
     PRICING_PURCHASE,
@@ -144,6 +149,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val allCategories: StateFlow<List<ScrapCategoryEntity>> = repository.allCategories
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val allEmployees: StateFlow<List<EmployeeEntity>> = repository.allEmployees
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val allEmployeeTransactions: StateFlow<List<EmployeeTransactionEntity>> = repository.allEmployeeTransactions
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Selected Customer for Details
@@ -322,6 +333,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateInvoice(invoice: InvoiceEntity, items: List<InvoiceItemEntity>, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.updateInvoice(invoice, items)
+            _selectedCustomerId.value?.let { loadCustomerSummary(it) }
+            showMessage("تم تحديث وحفظ بيانات الفاتورة بنجاح")
+            onSuccess()
+        }
+    }
+
     // Settlements
     fun addSettlement(customerId: Long, customerName: String, type: String, amount: Double, notes: String) {
         if (amount <= 0) {
@@ -453,6 +473,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.deleteCategory(category)
             showMessage("تم حذف الصنف")
+        }
+    }
+
+    // Employees Management
+    fun addOrUpdateEmployee(employee: EmployeeEntity) {
+        if (employee.name.isBlank()) {
+            showMessage("يرجى إدخال اسم الموظف")
+            return
+        }
+        viewModelScope.launch {
+            repository.addOrUpdateEmployee(employee)
+            showMessage("تم حفظ بيانات الموظف بنجاح")
+        }
+    }
+
+    fun deleteEmployee(employee: EmployeeEntity) {
+        viewModelScope.launch {
+            repository.deleteEmployee(employee)
+            showMessage("تم حذف الموظف")
+        }
+    }
+
+    fun payEmployee(
+        employee: EmployeeEntity,
+        transactionType: String,
+        amount: Double,
+        notes: String
+    ) {
+        if (amount <= 0) {
+            showMessage("يرجى إدخال مبلغ صحيح")
+            return
+        }
+        viewModelScope.launch {
+            repository.payEmployee(employee, transactionType, amount, notes)
+            val actionName = when (transactionType) {
+                "SALARY" -> "صرف راتب"
+                "ADVANCE" -> "تسجيل سلفة"
+                "BONUS" -> "صرف مكافأة"
+                else -> "تسجيل خصم"
+            }
+            showMessage("تم $actionName بمبلغ $amount للموظف ${employee.name} بنجاح")
+        }
+    }
+
+    fun deleteEmployeeTransaction(transaction: EmployeeTransactionEntity) {
+        viewModelScope.launch {
+            repository.deleteEmployeeTransaction(transaction)
+            showMessage("تم حذف السجل")
         }
     }
 }

@@ -85,11 +85,31 @@ fun ReportsScreen(
 
     val totalExpensesAmount = allExpenses.sumOf { it.amount }
 
+    // Categorized Expenses for precise net profit settlement (ايجار، كهرباء، رواتب، نقل، اخرى)
+    val salaryExpenses = remember(allExpenses) {
+        allExpenses.filter { it.category.contains("رواتب") || it.category.contains("عمالة") || it.category.contains("أجور") }.sumOf { it.amount }
+    }
+    val rentExpenses = remember(allExpenses) {
+        allExpenses.filter { it.category.contains("إيجار") || it.category.contains("ايجار") }.sumOf { it.amount }
+    }
+    val utilityExpenses = remember(allExpenses) {
+        allExpenses.filter { it.category.contains("كهرباء") || it.category.contains("مياه") }.sumOf { it.amount }
+    }
+    val transportExpenses = remember(allExpenses) {
+        allExpenses.filter { it.category.contains("نقل") || it.category.contains("شحن") }.sumOf { it.amount }
+    }
+    val otherExpenses = remember(allExpenses, salaryExpenses, rentExpenses, utilityExpenses, transportExpenses) {
+        (totalExpensesAmount - salaryExpenses - rentExpenses - utilityExpenses - transportExpenses).coerceAtLeast(0.0)
+    }
+
+    val grossCommercialProfit = totalSales - totalPurchases
+
     // Cashbox calculations
     val currentCashBalance = (totalSalesCashReceived - totalPurchasesCashPaid - totalExpensesAmount).coerceAtLeast(0.0)
     val totalCreditBalance = totalSalesRemainingCredit
 
     val netProfit = totalSales - totalPurchases - totalExpensesAmount
+    var showDetailedProfitBreakdown by remember { mutableStateOf(false) }
 
     // 7-day profit chart points calculation
     val weekDaysLabels = listOf("السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة")
@@ -540,7 +560,7 @@ fun ReportsScreen(
                     ) {
                         // إجمالي المبيعات
                         AccountDetailRow(
-                            title = "إجمالي المبيعات",
+                            title = "إجمالي المبيعات (الإيرادات)",
                             amount = formatCurrency(totalSales, ""),
                             icon = Icons.Default.ShoppingCart,
                             iconTint = Color(0xFF0256D0),
@@ -550,32 +570,117 @@ fun ReportsScreen(
 
                         // إجمالي المشتريات
                         AccountDetailRow(
-                            title = "إجمالي المشتريات",
+                            title = "إجمالي تكلفة المشتريات",
                             amount = formatCurrency(totalPurchases, ""),
                             icon = Icons.Default.ShoppingBag,
-                            iconTint = Color(0xFFEF4444),
-                            amountColor = Color(0xFFEF4444)
+                            iconTint = Color(0xFFF59E0B),
+                            amountColor = Color(0xFFD97706)
                         )
                         HorizontalDivider(color = Color(0xFFF1F5F9))
 
-                        // إجمالي المصروفات
+                        // مجمل الربح التجاري
                         AccountDetailRow(
-                            title = "إجمالي المصروفات",
+                            title = "مجمل الربح التجاري (مبيعات - مشتريات)",
+                            amount = formatCurrency(grossCommercialProfit, ""),
+                            icon = Icons.Default.TrendingUp,
+                            iconTint = if (grossCommercialProfit >= 0) Color(0xFF0256D0) else Color(0xFFEF4444),
+                            amountColor = if (grossCommercialProfit >= 0) Color(0xFF0256D0) else Color(0xFFEF4444)
+                        )
+                        HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                        // إجمالي المصروفات التشغيلية
+                        AccountDetailRow(
+                            title = "إجمالي المصروفات والتشغيل",
                             amount = formatCurrency(totalExpensesAmount, ""),
                             icon = Icons.Default.AccountBalanceWallet,
                             iconTint = Color(0xFFEF4444),
                             amountColor = Color(0xFFEF4444)
                         )
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
 
-                        // صافي الربح / الخسارة
-                        AccountDetailRow(
-                            title = "صافي الربح / الخسارة",
-                            amount = formatCurrency(netProfit, ""),
-                            icon = Icons.Default.Calculate,
-                            iconTint = if (netProfit >= 0) Color(0xFF16A34A) else Color(0xFFEF4444),
-                            amountColor = if (netProfit >= 0) Color(0xFF16A34A) else Color(0xFFEF4444)
-                        )
+                        // Toggle button for detailed expenses breakdown
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFEFF6FF),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDetailedProfitBreakdown = !showDetailedProfitBreakdown }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (showDetailedProfitBreakdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0256D0),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (showDetailedProfitBreakdown) "إخفاء تفصيل المصروفات (إيجار، كهرباء، رواتب...)" else "عرض تفصيل المصروفات وتصفية الصافي بدقة",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0256D0)
+                                    )
+                                }
+                                Icon(Icons.Default.Tune, contentDescription = null, tint = Color(0xFF0256D0), modifier = Modifier.size(16.dp))
+                            }
+                        }
+
+                        // Collapsible Detailed Expense Items
+                        if (showDetailedProfitBreakdown) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
+                                    .padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                ExpenseSubItemRow("• إيجار المحل والمستودع", rentExpenses, currency)
+                                ExpenseSubItemRow("• فواتير الكهرباء والمياه", utilityExpenses, currency)
+                                ExpenseSubItemRow("• رواتب ومستحقات الموظفين والعمالة", salaryExpenses, currency)
+                                ExpenseSubItemRow("• النقل والشحن والوقود", transportExpenses, currency)
+                                ExpenseSubItemRow("• صيانة ونثريات ومصاريف أخرى", otherExpenses, currency)
+                            }
+                        }
+
+                        HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.5.dp)
+
+                        // صافي الربح الحقيقي الصافي
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (netProfit >= 0) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "صافي الربح الفعلي (الصافي النهائي)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = if (netProfit >= 0) Color(0xFF166534) else Color(0xFF991B1B)
+                                    )
+                                    Text(
+                                        text = "المبيعات - المشتريات - (إيجار + كهرباء + رواتب + تشغيل)",
+                                        fontSize = 9.5.sp,
+                                        color = if (netProfit >= 0) Color(0xFF15803D) else Color(0xFFB91C1C)
+                                    )
+                                }
+                                Text(
+                                    text = "${formatCurrency(netProfit, "")} $currency",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (netProfit >= 0) Color(0xFF16A34A) else Color(0xFFEF4444),
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -772,3 +877,28 @@ fun AccountDetailRow(
         }
     }
 }
+
+@Composable
+fun ExpenseSubItemRow(title: String, amount: Double, currency: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "${formatCurrency(amount, "")} $currency",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (amount > 0) Color(0xFFEF4444) else Color(0xFF64748B)
+        )
+        Text(
+            text = title,
+            fontSize = 11.sp,
+            color = Color(0xFF334155),
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+

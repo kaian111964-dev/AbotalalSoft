@@ -1172,8 +1172,20 @@ fun PurchasesScreen(
                 ) {
                     Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(3.dp))
-                    Text("طباعة", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+
+            // زر الانتقال لسجل وتعديل المشتريات
+            OutlinedButton(
+                onClick = { viewModel.navigateTo(AppScreen.PURCHASE_HISTORY) },
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0256D0)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0256D0)),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(42.dp)
+            ) {
+                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("عرض سجل فواتير المشتريات وتعديلها", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(90.dp))

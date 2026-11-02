@@ -8,6 +8,8 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.data.local.entity.CustomerEntity
 import com.example.data.local.entity.DailyPriceEntity
+import com.example.data.local.entity.EmployeeEntity
+import com.example.data.local.entity.EmployeeTransactionEntity
 import com.example.data.local.entity.ExpenseEntity
 import com.example.data.local.entity.InvoiceEntity
 import com.example.data.local.entity.InvoiceItemEntity
@@ -198,4 +200,36 @@ interface ShopDao {
 
     @Query("DELETE FROM expenses")
     suspend fun clearExpenses()
+
+    // Employees
+    @Query("SELECT * FROM employees ORDER BY name ASC")
+    fun getAllEmployees(): Flow<List<EmployeeEntity>>
+
+    @Query("SELECT * FROM employees ORDER BY name ASC")
+    suspend fun getAllEmployeesSync(): List<EmployeeEntity>
+
+    @Query("SELECT * FROM employees WHERE id = :id LIMIT 1")
+    suspend fun getEmployeeById(id: Long): EmployeeEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEmployee(employee: EmployeeEntity): Long
+
+    @Update
+    suspend fun updateEmployee(employee: EmployeeEntity)
+
+    @Delete
+    suspend fun deleteEmployee(employee: EmployeeEntity)
+
+    // Employee Transactions
+    @Query("SELECT * FROM employee_transactions ORDER BY timestamp DESC")
+    fun getAllEmployeeTransactions(): Flow<List<EmployeeTransactionEntity>>
+
+    @Query("SELECT * FROM employee_transactions WHERE employeeId = :employeeId ORDER BY timestamp DESC")
+    fun getTransactionsForEmployee(employeeId: Long): Flow<List<EmployeeTransactionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEmployeeTransaction(transaction: EmployeeTransactionEntity): Long
+
+    @Delete
+    suspend fun deleteEmployeeTransaction(transaction: EmployeeTransactionEntity)
 }

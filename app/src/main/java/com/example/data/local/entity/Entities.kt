@@ -106,3 +106,29 @@ data class ExpenseEntity(
     val timestamp: Long,
     val notes: String = ""
 )
+
+@Entity(tableName = "employees")
+data class EmployeeEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val phone: String = "",
+    val jobTitle: String = "عامل",
+    val salary: Double = 0.0,
+    val salaryType: String = "شهري", // "شهري", "أسبوعي", "يومي"
+    val balance: Double = 0.0, // المستحق له (موجب) أو السلف عليه (سالب)
+    val isActive: Boolean = true,
+    val hireDate: String = "",
+    val notes: String = ""
+)
+
+@Entity(tableName = "employee_transactions")
+data class EmployeeTransactionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val employeeId: Long,
+    val employeeName: String,
+    val transactionType: String, // "SALARY" (صرف راتب), "ADVANCE" (سلفة), "BONUS" (مكافأة), "DEDUCTION" (خصم)
+    val amount: Double,
+    val dateString: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val notes: String = ""
+)

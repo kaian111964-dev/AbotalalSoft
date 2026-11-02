@@ -12,6 +12,8 @@ import com.example.data.local.entity.ExpenseEntity
 import com.example.data.local.entity.InvoiceEntity
 import com.example.data.local.entity.InvoiceItemEntity
 import com.example.data.local.entity.ScrapCategoryEntity
+import com.example.data.local.entity.EmployeeEntity
+import com.example.data.local.entity.EmployeeTransactionEntity
 import com.example.data.local.entity.SettlementEntity
 import com.example.data.local.entity.ShopProfileEntity
 import kotlinx.coroutines.CoroutineScope
@@ -27,9 +29,11 @@ import kotlinx.coroutines.launch
         InvoiceItemEntity::class,
         CustomerEntity::class,
         SettlementEntity::class,
-        ExpenseEntity::class
+        ExpenseEntity::class,
+        EmployeeEntity::class,
+        EmployeeTransactionEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

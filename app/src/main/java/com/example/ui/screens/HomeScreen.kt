@@ -282,11 +282,20 @@ fun HomeScreen(
 
                     DrawerItem(
                         icon = Icons.Default.Assessment,
-                        title = "تقارير المشتريات",
+                        title = "سجل وتقارير المشتريات",
                         tint = Color(0xFFDC2626)
                     ) {
                         coroutineScope.launch { drawerState.close() }
-                        viewModel.navigateTo(AppScreen.REPORTS)
+                        viewModel.navigateTo(AppScreen.PURCHASE_HISTORY)
+                    }
+
+                    DrawerItem(
+                        icon = Icons.Default.Badge,
+                        title = "الموظفين والرواتب",
+                        tint = Color(0xFF8B5CF6)
+                    ) {
+                        coroutineScope.launch { drawerState.close() }
+                        viewModel.navigateTo(AppScreen.EMPLOYEES)
                     }
 
                     // 2. الإعدادات
@@ -559,11 +568,59 @@ fun HomeScreen(
                         onDebtsClick = { viewModel.navigateTo(AppScreen.CUSTOMERS) }
                     )
 
+                    // Quick Section: سجل المشتريات وتعديل الفواتير + قسم الموظفين والرواتب
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                                .clickable { viewModel.navigateTo(AppScreen.PURCHASE_HISTORY) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF1E3A8A)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                                Text("سجل وتعديل المشتريات", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
+                                .clickable { viewModel.navigateTo(AppScreen.EMPLOYEES) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF7C3AED)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                                Text("الموظفين والرواتب", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Icon(Icons.Default.Badge, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+
                     // 6. RECENT TRANSACTIONS SECTION ("آخر العمليات")
                     RecentTransactionsSection(
                         invoices = allInvoices.take(4),
                         currency = currency,
-                        onViewAllClick = { viewModel.navigateTo(AppScreen.REPORTS) }
+                        onViewAllClick = { viewModel.navigateTo(AppScreen.PURCHASE_HISTORY) }
                     )
 
                     // 7. DEVELOPER SIGNATURE FOOTER
@@ -1232,15 +1289,15 @@ fun SalesAndProfitsChartCard(
                         val centerX = colWidth * i + (colWidth / 2f)
 
                         // If has real data calculate proportions, else clean baseline
-                        val salesFraction = if (hasData) {
+                        val salesFraction = if (saleInvoices.isNotEmpty()) {
                             val inv = saleInvoices.getOrNull(i % saleInvoices.size)
-                            if (inv != null) 0.3f + (0.5f * ((inv.totalAmount % 1000) / 1000f).toFloat()) else 0.15f
+                            if (inv != null) (0.25f + (0.5f * ((inv.totalAmount % 1000) / 1000f).toFloat())).coerceIn(0.1f, 0.9f) else 0.15f
                         } else {
                             0.08f // Gentle zero indicator
                         }
 
-                        val profitFraction = if (hasData) {
-                            salesFraction * 0.65f
+                        val profitFraction = if (saleInvoices.isNotEmpty()) {
+                            (salesFraction * 0.65f).coerceIn(0.05f, 0.8f)
                         } else {
                             0.04f
                         }

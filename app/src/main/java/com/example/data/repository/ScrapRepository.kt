@@ -3,6 +3,8 @@ package com.example.data.repository
 import com.example.data.local.dao.ShopDao
 import com.example.data.local.entity.CustomerEntity
 import com.example.data.local.entity.DailyPriceEntity
+import com.example.data.local.entity.EmployeeEntity
+import com.example.data.local.entity.EmployeeTransactionEntity
 import com.example.data.local.entity.ExpenseEntity
 import com.example.data.local.entity.InvoiceEntity
 import com.example.data.local.entity.InvoiceItemEntity
@@ -38,6 +40,8 @@ class ScrapRepository(private val dao: ShopDao) {
     val allCustomers: Flow<List<CustomerEntity>> = dao.getAllCustomers()
     val allExpenses: Flow<List<ExpenseEntity>> = dao.getAllExpenses()
     val allSettlements: Flow<List<SettlementEntity>> = dao.getAllSettlements()
+    val allEmployees: Flow<List<EmployeeEntity>> = dao.getAllEmployees()
+    val allEmployeeTransactions: Flow<List<EmployeeTransactionEntity>> = dao.getAllEmployeeTransactions()
 
     suspend fun getShopProfileSync(): ShopProfileEntity? = dao.getShopProfileSync()
 
@@ -134,6 +138,23 @@ class ScrapRepository(private val dao: ShopDao) {
     suspend fun deleteInvoice(invoice: InvoiceEntity) {
         dao.deleteItemsForInvoice(invoice.id)
         dao.deleteInvoice(invoice)
+    }
+
+    suspend fun updateInvoice(
+        invoice: InvoiceEntity,
+        items: List<InvoiceItemEntity>
+    ) {
+        val totalAmount = items.sumOf { it.subtotal }
+        val remaining = (totalAmount - invoice.paidAmount).coerceAtLeast(0.0)
+        val updated = invoice.copy(
+            totalAmount = totalAmount,
+            remainingAmount = remaining,
+            isDebt = remaining > 0
+        )
+        dao.updateInvoice(updated)
+        dao.deleteItemsForInvoice(invoice.id)
+        val itemsWithId = items.map { it.copy(invoiceId = invoice.id) }
+        dao.insertInvoiceItems(itemsWithId)
     }
 
     // Settlements
@@ -485,5 +506,92 @@ class ScrapRepository(private val dao: ShopDao) {
             e.printStackTrace()
             return false
         }
+    }
+
+    // Employees Management
+    suspend fun addOrUpdateEmployee(employee: EmployeeEntity): Long {
+        return if (employee.id == 0L) {
+            dao.insertEmployee(employee)
+        } else {
+            dao.updateEmployee(employee)
+            employee.id
+        }
+    }
+
+    suspend fun deleteEmployee(employee: EmployeeEntity) {
+        dao.deleteEmployee(employee)
+    }
+
+    suspend fun payEmployee(
+        employee: EmployeeEntity,
+        transactionType: String, // "SALARY", "ADVANCE", "BONUS", "DEDUCTION"
+        amount: Double,
+        notes: String
+    ): Long {
+        val now = System.currentTimeMillis()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val dateStr = dateFormat.format(Date(now))
+
+        val tx = EmployeeTransactionEntity(
+            employeeId = employee.id,
+            employeeName = employee.name,
+            transactionType = transactionType,
+            amount = amount,
+            dateString = dateStr,
+            timestamp = now,
+            notes = notes
+        )
+        val txId = dao.insertEmployeeTransaction(tx)
+
+        // Update balance: ADVANCE means employee owes money (negative), DEDUCTION reduces payout, BONUS adds credit
+        val balanceDelta = when (transactionType) {
+            "ADVANCE" -> -amount
+            "DEDUCTION" -> -amount
+            "BONUS" -> amount
+            else -> 0.0
+        }
+        val updatedEmployee = employee.copy(balance = employee.balance + balanceDelta)
+        dao.updateEmployee(updatedEmployee)
+
+        // Record as operational expense under "رواتب ومستحقات الموظفين" so profit calculation is 100% accurate!
+        val expenseCategory = "رواتب ومستحقات الموظفين"
+        val expenseTitle = when (transactionType) {
+            "SALARY" -> "صرف راتب: ${employee.name}"
+            "ADVANCE" -> "سلفة موظف: ${employee.name}"
+            "BONUS" -> "مكافأة موظف: ${employee.name}"
+            else -> "خصم/مستحقات: ${employee.name}"
+        }
+
+        if (transactionType != "DEDUCTION") {
+            dao.insertExpense(
+                ExpenseEntity(
+                    title = expenseTitle,
+                    category = expenseCategory,
+                    amount = amount,
+                    dateString = dateStr,
+                    timestamp = now,
+                    notes = notes
+                )
+            )
+
+            // Deduct from cashbox
+            dao.insertSettlement(
+                SettlementEntity(
+                    customerId = 0,
+                    customerName = "الموظف: ${employee.name}",
+                    type = "CASH_WITHDRAWAL",
+                    amount = amount,
+                    dateString = dateStr,
+                    timestamp = now,
+                    notes = "$expenseTitle - $notes"
+                )
+            )
+        }
+
+        return txId
+    }
+
+    suspend fun deleteEmployeeTransaction(transaction: EmployeeTransactionEntity) {
+        dao.deleteEmployeeTransaction(transaction)
     }
 }
